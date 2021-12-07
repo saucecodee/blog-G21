@@ -1,15 +1,15 @@
 Authentication 
-✅ Signup - email, password, fullname
-✅ Login 
+✅ Signup - /auth/signup
+✅ Signin - /auth/siginin
 
 Post 
-- Create post 
-- Edit post 
-- View post 
-- View all posts 
-- Delete post 
+✅ Create post - /post
+✅ Edit post - /post/:post_id
+✅ View post - /post/:post_id
+✅ View all posts - /post
+✅ Delete post - /post/:post_id
 
 Profile management 
-- View profile 
-- Edit profile 
-- Delete profile
+- View profile - /profile
+- Edit profile - /profile
+- Delete profile - /profile
