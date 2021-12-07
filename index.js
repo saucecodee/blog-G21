@@ -1,12 +1,14 @@
 const express = require('express');
 const morgan = require('morgan');
+require('dotenv').config()
+const jwt = require("jsonwebtoken")
 const app = express();
-const port = process.env.PORT || 3030;
-const JWT_SECRET_KEY = "fdbiudvu984893cndsioboidsbUIDsbodisbiudjs"
+const port = process.env.PORT;
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
+
 
 const User = require("./models/user")
 const Post = require("./models/post")
-const jwt = require("jsonwebtoken")
 
 app.use(morgan('dev'));
 app.use(express.json())
@@ -15,7 +17,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Setup MongoDB config
 const mongoose = require('mongoose');
-const MONGODB_URI = "mongodb://localhost:27017/blog"
+const MONGODB_URI = process.env.MONGODB_URI
 
 app.get('/ping', (req, res) => {
   res.status(200).send("Hello world!")

@@ -13,3 +13,7 @@ Profile management
 ✅ View profile - /profile/:user_id
 ✅ Edit profile - /profile/:user_id
 ✅ Delete profile - /profile
+
+✅ implement .env
+- Fix password in plain text
+- use jwt for auth
