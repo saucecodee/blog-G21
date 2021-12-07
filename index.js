@@ -2,6 +2,7 @@ const express = require('express');
 const morgan = require('morgan');
 require('dotenv').config()
 const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
 const app = express();
 const port = process.env.PORT;
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
@@ -27,9 +28,10 @@ app.post("/auth/signup", async (req, res) => {
   const data = req.body
 
   try {
+    const passwordHash = await bcrypt.hash(data.password, 10)
     const user = await new User({
       email: data.email,
-      password: data.password,
+      password: passwordHash,
       full_name: data.full_name
     }).save()
 
@@ -53,11 +55,11 @@ app.post("/auth/signup", async (req, res) => {
 app.post("/auth/signin", async (req, res) => {
   const data = req.body
 
-
   try {
     const user = await User.findOne({ email: data.email })
     if (!user) return res.status(400).send({ message: "Invalid email or password" })
-    if (data.password != user.password) return res.status(400).send({ message: "Invalid email or password" })
+    const isValidPassword = await bcrypt.compare(data.password, user.password)
+    if (!isValidPassword) return res.status(400).send({ message: "Invalid email or password" })
 
     const token = jwt.sign({ user_id: user._id }, JWT_SECRET_KEY)
 

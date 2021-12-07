@@ -15,5 +15,5 @@ Profile management
 ✅ Delete profile - /profile
 
 ✅ implement .env
-- Fix password in plain text
+✅ Fix password in plain text
 - use jwt for auth
