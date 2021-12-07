@@ -16,4 +16,4 @@ Profile management
 
 ✅ implement .env
 ✅ Fix password in plain text
-- use jwt for auth
+✅ use jwt for auth

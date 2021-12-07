@@ -1,16 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 require('dotenv').config()
-const jwt = require("jsonwebtoken")
-const bcrypt = require("bcrypt")
 const app = express();
 const port = process.env.PORT;
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
-
-
-const User = require("./models/user")
-const Post = require("./models/post")
-const auth = require("./middlewares/auth")
 
 app.use(morgan('dev'));
 app.use(express.json())
@@ -24,172 +16,10 @@ const MONGODB_URI = process.env.MONGODB_URI
 app.get('/ping', (req, res) => {
   res.status(200).send("Hello world!")
 });
+app.use("/auth", require("./routes/auth"))
+app.use("/post", require("./routes/post"))
+app.use("/profile", require("./routes/profile"))
 
-app.post("/auth/signup", async (req, res) => {
-  const data = req.body
-
-  try {
-    const passwordHash = await bcrypt.hash(data.password, 10)
-    const user = await new User({
-      email: data.email,
-      password: passwordHash,
-      full_name: data.full_name
-    }).save()
-
-    const token = jwt.sign({ user_id: user._id }, JWT_SECRET_KEY, { expiresIn: 60 * 10 })
-
-    res.status(201).send({
-      message: "User created",
-      data: {
-        token,
-        user_id: user._id,
-        email: user.email,
-        full_name: user.full_name
-      }
-    })
-  } catch (error) {
-    res.status(400).send({ message: "User couldn't be created", error })
-  }
-
-})
-
-app.post("/auth/signin", async (req, res) => {
-  const data = req.body
-
-  try {
-    const user = await User.findOne({ email: data.email })
-    if (!user) return res.status(400).send({ message: "Invalid email or password" })
-    const isValidPassword = await bcrypt.compare(data.password, user.password)
-    if (!isValidPassword) return res.status(400).send({ message: "Invalid email or password" })
-
-    const token = jwt.sign({ user_id: user._id }, JWT_SECRET_KEY)
-
-    res.status(200).send({
-      message: "User created",
-      data: {
-        token,
-        user_id: user._id,
-        email: user.email,
-        full_name: user.full_name
-      }
-    })
-  } catch (error) {
-    console.log(error)
-    res.status(400).send({ message: "Unable to signin", error })
-  }
-
-})
-
-app.post("/post", auth(), async (req, res) => {
-  const data = req.body
-
-  try {
-    const post = await new Post({
-      title: data.title,
-      body: data.body,
-      user_id: req.USER_ID
-    }).save()
-
-    res.status(200).send({ message: "Post created", data: post })
-  } catch (error) {
-    res.status(400).send({ message: "Post wasn't created", error })
-  }
-
-})
-
-app.patch("/post/:post_id", auth(), async (req, res) => {
-  const data = req.body
-
-  try {
-    const post = await Post.findOne({ _id: req.params.post_id })
-    if (post.user_id != req.USER_ID) return res.status(403).send({ message: "You can't edit this post" })
-    if (!post) return res.status(400).send({ message: "Post wasn't updated" })
-
-    // const newPost = Post.findByIdAndUpdate(req.params.post_id, data) // full update
-    const newPost = await Post.findByIdAndUpdate(
-      req.params.post_id,
-      {
-        $set: {
-          title: data.title,
-          body: data.body
-        }
-      },
-      { new: true }
-    ) // partial update
-
-    res.status(200).send({ message: "Post updated", data: newPost })
-  } catch (error) {
-    console.log(error)
-    res.status(400).send({ message: "Post wasn't updated", error })
-  }
-
-})
-
-app.get("/post", async (req, res) => {
-  try {
-    const posts = await Post.find().populate("user_id", "email full_name")
-    res.status(200).send({ message: "All posts", data: posts })
-  } catch (error) {
-    res.status(400).send({ message: "Couldn't get posts", error })
-  }
-})
-
-app.get("/post/:post_id", async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.post_id).populate("user_id", "email full_name")
-    res.status(200).send({ message: "Post", data: post })
-  } catch (error) {
-    res.status(400).send({ message: "Couldn't get post", error })
-  }
-})
-
-app.delete("/post/:post_id", auth(), async (req, res) => {
-  try {
-    const post = await Post.findOne({ _id: req.params.post_id })
-    if (post.user_id != req.USER_ID) return res.status(403).send({ message: "You can't delete this post" })
-    await Post.findByIdAndDelete(req.params.post_id)
-    res.status(200).send({ message: "Post deleted", data: post })
-  } catch (error) {
-    res.status(400).send({ message: "Couldn't delete post", error })
-  }
-})
-
-
-app.get("/profile/:user_id", async (req, res) => {
-  try {
-    const profile = await User.findById(req.params.user_id).select("-password -__v")
-    res.status(200).send({ message: "User profile", data: profile })
-  } catch (error) {
-    res.status(400).send({ message: "Couldn't get profile", error })
-  }
-})
-
-app.patch("/profile", auth(), async (req, res) => {
-  const data = req.body
-  const user_id = req.USER_ID
-  try {
-    const profile = await User.findById(user_id)
-    if (!profile) return res.status(400).send({ message: "User profile does not exist" })
-    const newProfile = await User.findByIdAndUpdate(
-      user_id,
-      { $set: { full_name: data.full_name } },
-      { new: true }
-    )
-    res.status(200).send({ message: "Updated user profile", data: newProfile })
-  } catch (error) {
-    res.status(400).send({ message: "Couldn't edit profile", error })
-  }
-}
-)
-
-app.delete("/profile", auth(), async (req, res) => {
-  try {
-    const profile = await User.findByIdAndDelete(req.USER_ID)
-    res.status(200).send({ message: "User profile deleted", data: profile })
-  } catch (error) {
-    res.status(400).send({ message: "Couldn't delete profile", error })
-  }
-})
 
 app.use("**", (req, res) => {
   res.status(404).send({ message: "Route not found" })
