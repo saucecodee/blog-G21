@@ -10,6 +10,7 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
 
 const User = require("./models/user")
 const Post = require("./models/post")
+const auth = require("./middlewares/auth")
 
 app.use(morgan('dev'));
 app.use(express.json())
@@ -79,14 +80,14 @@ app.post("/auth/signin", async (req, res) => {
 
 })
 
-app.post("/post", async (req, res) => {
+app.post("/post", auth(), async (req, res) => {
   const data = req.body
 
   try {
     const post = await new Post({
       title: data.title,
       body: data.body,
-      user_id: data.user_id
+      user_id: req.USER_ID
     }).save()
 
     res.status(200).send({ message: "Post created", data: post })
@@ -96,11 +97,12 @@ app.post("/post", async (req, res) => {
 
 })
 
-app.patch("/post/:post_id", async (req, res) => {
+app.patch("/post/:post_id", auth(), async (req, res) => {
   const data = req.body
 
   try {
     const post = await Post.findOne({ _id: req.params.post_id })
+    if (post.user_id != req.USER_ID) return res.status(403).send({ message: "You can't edit this post" })
     if (!post) return res.status(400).send({ message: "Post wasn't updated" })
 
     // const newPost = Post.findByIdAndUpdate(req.params.post_id, data) // full update
@@ -141,14 +143,17 @@ app.get("/post/:post_id", async (req, res) => {
   }
 })
 
-app.delete("/post/:post_id", async (req, res) => {
+app.delete("/post/:post_id", auth(), async (req, res) => {
   try {
-    const post = await Post.findByIdAndDelete(req.params.post_id)
+    const post = await Post.findOne({ _id: req.params.post_id })
+    if (post.user_id != req.USER_ID) return res.status(403).send({ message: "You can't delete this post" })
+    await Post.findByIdAndDelete(req.params.post_id)
     res.status(200).send({ message: "Post deleted", data: post })
   } catch (error) {
     res.status(400).send({ message: "Couldn't delete post", error })
   }
 })
+
 
 app.get("/profile/:user_id", async (req, res) => {
   try {
@@ -159,14 +164,14 @@ app.get("/profile/:user_id", async (req, res) => {
   }
 })
 
-app.patch("/profile/:user_id", async (req, res) => {
+app.patch("/profile", auth(), async (req, res) => {
   const data = req.body
-
+  const user_id = req.USER_ID
   try {
-    const profile = await User.findById(req.params.user_id)
+    const profile = await User.findById(user_id)
     if (!profile) return res.status(400).send({ message: "User profile does not exist" })
     const newProfile = await User.findByIdAndUpdate(
-      req.params.user_id,
+      user_id,
       { $set: { full_name: data.full_name } },
       { new: true }
     )
@@ -174,15 +179,25 @@ app.patch("/profile/:user_id", async (req, res) => {
   } catch (error) {
     res.status(400).send({ message: "Couldn't edit profile", error })
   }
-})
+}
+)
 
-app.delete("/profile/:user_id", async (req, res) => {
+app.delete("/profile", auth(), async (req, res) => {
   try {
-    const profile = await User.findByIdAndDelete(req.params.user_id)
+    const profile = await User.findByIdAndDelete(req.USER_ID)
     res.status(200).send({ message: "User profile deleted", data: profile })
   } catch (error) {
     res.status(400).send({ message: "Couldn't delete profile", error })
   }
+})
+
+app.use("**", (req, res) => {
+  res.status(404).send({ message: "Route not found" })
+})
+
+app.use((error, req, res, next) => {
+  console.log(error)
+  res.status(500).send({ message: "Something went wrong", error: error.message })
 })
 
 app.listen(port, async () => {
