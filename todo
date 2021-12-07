@@ -10,6 +10,6 @@ Post
 ✅ Delete post - /post/:post_id
 
 Profile management 
-- View profile - /profile
-- Edit profile - /profile
-- Delete profile - /profile
+✅ View profile - /profile/:user_id
+✅ Edit profile - /profile/:user_id
+✅ Delete profile - /profile

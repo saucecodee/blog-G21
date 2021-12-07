@@ -146,6 +146,40 @@ app.delete("/post/:post_id", async (req, res) => {
   }
 })
 
+app.get("/profile/:user_id", async (req, res) => {
+  try {
+    const profile = await User.findById(req.params.user_id).select("-password -__v")
+    res.status(200).send({ message: "User profile", data: profile })
+  } catch (error) {
+    res.status(400).send({ message: "Couldn't get profile", error })
+  }
+})
+
+app.patch("/profile/:user_id", async (req, res) => {
+  const data = req.body
+
+  try {
+    const profile = await User.findById(req.params.user_id)
+    if (!profile) return res.status(400).send({ message: "User profile does not exist" })
+    const newProfile = await User.findByIdAndUpdate(
+      req.params.user_id,
+      { $set: { full_name: data.full_name } },
+      { new: true }
+    )
+    res.status(200).send({ message: "Updated user profile", data: newProfile })
+  } catch (error) {
+    res.status(400).send({ message: "Couldn't edit profile", error })
+  }
+})
+
+app.delete("/profile/:user_id", async (req, res) => {
+  try {
+    const profile = await User.findByIdAndDelete(req.params.user_id)
+    res.status(200).send({ message: "User profile deleted", data: profile })
+  } catch (error) {
+    res.status(400).send({ message: "Couldn't delete profile", error })
+  }
+})
 
 app.listen(port, async () => {
   try {
