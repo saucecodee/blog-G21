@@ -1,6 +1,5 @@
 const router = require("express").Router()
 const auth = require("./../middlewares/auth")
-
 const PostController = require("./../controllers/post")
 
 router.post("/", auth(), PostController.create)
